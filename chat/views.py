@@ -69,13 +69,24 @@ def start_chat(request):
         # Find an available session with only one user
         available_sessions = ChatSession.objects.filter(user2__isnull=True).exclude(user1=user)
         if available_sessions.exists():
+            # Join an existing session
             chat_session = available_sessions.first()
             chat_session.user2 = user
             chat_session.save()
+            connected_user = chat_session.user1.username
+            return JsonResponse({
+                'status': 'connected',
+                'session_id': chat_session.id,
+                'connected_user': connected_user
+            })
         else:
+            # Create a new session and wait for another user to join
             chat_session = ChatSession.objects.create(user1=user)
-
-        return JsonResponse({'session_id': chat_session.id})
+            return JsonResponse({
+                'status': 'waiting',
+                'session_id': chat_session.id,
+                'connected_user': None
+            })
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 
@@ -126,4 +137,30 @@ def cleanup_sessions(request):
         ).update(is_active=False)
 
         return JsonResponse({'status': 'ok'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+def check_connection(request):
+    if 'user_id' not in request.session:
+        return JsonResponse({'status': 'error', 'message': 'Not logged in'}, status=401)
+
+    if request.method == 'GET':
+        session_id = request.GET.get('session_id')
+        chat_session = get_object_or_404(ChatSession, id=session_id)
+
+        if chat_session.user2:
+            # User is connected to another user
+            if chat_session.user1.id == request.session['user_id']:
+                connected_user = chat_session.user2.username
+            else:
+                connected_user = chat_session.user1.username
+            return JsonResponse({
+                'status': 'connected',
+                'connected_user': connected_user
+            })
+        else:
+            # User is waiting for another user to join
+            return JsonResponse({
+                'status': 'waiting',
+                'connected_user': None
+            })
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)

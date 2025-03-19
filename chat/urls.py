@@ -9,5 +9,5 @@ urlpatterns = [
     path('start_chat/', views.start_chat, name='start_chat'),
     path('send_message/', views.send_message, name='send_message'),
     path('get_messages/', views.get_messages, name='get_messages'),
-    path('cleanup_sessions/', views.cleanup_sessions, name='cleanup_sessions'),  # Add this line
+    path('check_connection/', views.check_connection, name='check_connection'),  # Add this line
 ]

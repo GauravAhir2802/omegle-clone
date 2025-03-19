@@ -9,6 +9,9 @@
 <body>
     <h1>Omegle Clone</h1>
     <p>Welcome, {{ user.username }}! <a href="{% url 'logout' %}">Logout</a></p>
+    <div id="connection-status" style="margin-bottom: 10px;">
+        <p>Connecting...</p>
+    </div>
     <div id="chat">
         <div id="messages" style="height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;"></div>
         <input type="text" id="message" placeholder="Type your message here..." style="width: 80%; padding: 10px;">
@@ -19,12 +22,25 @@
         $(document).ready(function() {
             let session_id = null;
             let user = '{{ user.username }}';
-    
+
             // Start a chat session
             $.get('/chat/start_chat/', function(data) {
                 session_id = data.session_id;
                 console.log('Chat session started with ID:', session_id);
-    
+
+                // Check connection status every second
+                setInterval(function() {
+                    $.get('/chat/check_connection/', {session_id: session_id}, function(data) {
+                        if (data.status === 'connected') {
+                            $('#connection-status').html(`<p>Connected with ${data.connected_user}</p>`);
+                        } else {
+                            $('#connection-status').html('<p>Waiting for another user to connect...</p>');
+                        }
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error checking connection:', textStatus, errorThrown);
+                    });
+                }, 1000);
+
                 // Fetch messages every second
                 setInterval(function() {
                     $.get('/chat/get_messages/', {session_id: session_id}, function(data) {
@@ -40,12 +56,12 @@
             }).fail(function(jqXHR, textStatus, errorThrown) {
                 console.error('Error starting chat session:', textStatus, errorThrown);
             });
-    
+
             // Send a message
             $('#send').click(function() {
                 let message = $('#message').val();
                 if (message.trim() === '') return;
-    
+
                 $.ajax({
                     url: '/chat/send_message/',
                     method: 'POST',
@@ -62,7 +78,7 @@
                     }
                 });
             });
-    
+
             // Allow pressing Enter to send a message
             $('#message').keypress(function(e) {
                 if (e.which === 13) { // Enter key
