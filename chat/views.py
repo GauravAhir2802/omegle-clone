@@ -4,6 +4,7 @@ from django.views.decorators.csrf import csrf_exempt  # Import csrf_exempt
 from .models import UserProfile, ChatSession, Message
 import json
 import requests
+from chat import models
 
 # Registration View
 def register(request):
